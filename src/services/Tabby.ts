@@ -7,8 +7,18 @@ import {
 } from "@medusajs/medusa";
 import axios, { AxiosResponse } from "axios";
 import { humanizeAmount } from "medusa-core-utils"
+import { merchant } from "../types/merchants";
 
 class MyPaymentProcessor extends AbstractPaymentProcessor {
+    merchants: merchant[];
+    constructor(container, options) {
+        super(container)
+        // options contains plugin options
+        this.merchants = options.merchants
+      }
+
+
+
     updatePaymentData(sessionId: string, data: Record<string, unknown>): Promise<Record<string, unknown> | PaymentProcessorError> {
         throw new Error("1");
     }
@@ -80,30 +90,30 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
         const priceString = price.toString();
         const formattedPrice = priceString.slice(0, 3) + "." + priceString.slice(3);
         const success = `${process.env.WEB_ENDPOINT}/success`;
-
-
+        const currency= context.currency_code;
+        console.log(context.customer)
+        const country = context.customer.billing_address?.country_code;
+        const merchant = this.merchants.find((merchant) => merchant.currency === currency.toUpperCase()) 
+                        || this.merchants.find((merchant) => merchant.type === "DEFAULT");
+        
         const data = {
             "payment": {
                 "amount": price,
-                "currency": "AED",
+                "currency": merchant.currency,
                 "description": null,
                 "buyer": {
-                    "phone": "string",
+                    "phone": `${context.customer?.phone}`|| null,
                     "email": context.email,
-                    "name": "string",
-                    "dob": "2019-08-24"
+                    "name": `${context.customer?.first_name} ${context.customer?.last_name}` || null,
+                    "dob":  new Date().toISOString().slice(0, 10)
                 },
                 "shipping_address": {
-                    "city": null,
-                    "address": null,
-                    "zip": null
+                    "city": `${context.billing_address?.city}`|| null,
+                    "address": `${context.billing_address?.address_1}`|| null,
+                    "zip": context.billing_address?.postal_code || null
                 },
                 "order": {
-                    "tax_amount": "0.00",
-                    "shipping_amount": "0.00",
-                    "discount_amount": "0.00",
-                    "updated_at": "2019-08-24T14:15:22Z",
-                    "reference_id": null,
+                    "reference_id": context.resource_id,
                     "items": [
                         {
                             "title": null,
@@ -174,17 +184,11 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                         ]
                     }
                 ],
-                "meta": {
-                    "order_id": null,
-                    "customer": null
-                },
-                "attachment": {
-                    "body": "{\"flight_reservation_details\": {\"pnr\": \"TR9088999\",\"itinerary\": [...],\"insurance\": [...],\"passengers\": [...],\"affiliate_name\": \"some affiliate\"}}",
-                    "content_type": "application/vnd.tabby.v1+json"
-                }
+
+
             },
             "lang": "ar",
-            "merchant_code": "MAROC4UAE",
+            "merchant_code": merchant.merchant_code,
             "merchant_urls": {
                 "success": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=approved&`,
                 "cancel": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=canceled&`,

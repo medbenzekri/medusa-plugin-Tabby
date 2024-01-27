@@ -1,6 +1,6 @@
 {
   "name": "medusa-plugin-tabby",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Tabby payment gateway plugin for Medusa",
   "author": "Benzekri Mohammed islam",
   "license": "MIT",
@@ -8,6 +8,7 @@
     "Payment",
     "medusa-plugin",
     "tabby",
+    "medusa-plugin-payment",
     "medusa"
   ],
   "scripts": {
@@ -17,11 +18,11 @@
     "build:admin": "cross-env medusa-admin build",
     "watch": "cross-env tsc --watch",
     "test": "cross-env jest",
-    "prepare": "cross-env NODE_ENV=production npm run build:server && medusa-admin bundle"
+    "prepare": "cross-env NODE_ENV=production npm run build:server "
   },
   "dependencies": {
     "@medusajs/event-bus-local": "^1.9.6",
-    "@medusajs/medusa": "^1.15.0",
+    "@medusajs/medusa": "^1.16.0",
     "@tanstack/react-query": "4.22.0",
     "babel-preset-medusa-package": "^1.1.13",
     "body-parser": "^1.19.0",
