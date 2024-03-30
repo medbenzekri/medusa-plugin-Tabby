@@ -100,12 +100,10 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
             "payment": {
                 "amount": price,
                 "currency": merchant.currency,
-                "description": null,
                 "buyer": {
                     "phone": `${context.customer?.phone}`|| null,
                     "email": context.email,
                     "name": `${context.customer?.first_name} ${context.customer?.last_name}` || null,
-                    "dob":  new Date().toISOString().slice(0, 10)
                 },
                 "shipping_address": {
                     "city": `${context.billing_address?.city}`|| null,
@@ -117,71 +115,23 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                     "items": [
                         {
                             "title": null,
-                            "description": null,
                             "quantity": 1,
                             "unit_price": "0.00",
-                            "discount_amount": "0.00",
-                            "reference_id": null,
-                            "image_url": "http://example.com",
-                            "product_url": "http://example.com",
-                            "gender": "Male",
                             "category": null,
-                            "color": null,
-                            "product_material": null,
-                            "size_type": null,
-                            "size": null,
-                            "brand": null
+                        
                         }
                     ]
                 },
                 "buyer_history": {
                     "registered_since": "2019-08-24T14:15:22Z",
                     "loyalty_level": 0,
-                    "wishlist_count": 0,
-                    "is_social_networks_connected": true,
-                    "is_phone_number_verified": true,
-                    "is_email_verified": true
                 },
                 "order_history": [
                     {
                         "purchased_at": "2019-08-24T14:15:22Z",
                         "amount": "100.00",
-                        "payment_method": "card",
                         "status": "new",
-                        "buyer": {
-                            "phone": null,
-                            "email": "user@example.com",
-                            "name": null,
-                            "dob": "2019-08-24"
-                        },
-                        "shipping_address": {
-                            "city": null,
-                            "address": null,
-                            "zip": null
-                        },
-                        "items": [
-                            {
-                                "title": null,
-                                "description": null,
-                                "quantity": 1,
-                                "unit_price": "0.00",
-                                "discount_amount": "0.00",
-                                "reference_id": null,
-                                "image_url": "http://example.com",
-                                "product_url": "http://example.com",
-                                "ordered": 0,
-                                "captured": 0,
-                                "shipped": 0,
-                                "refunded": 0,
-                                "gender": "Male",
-                                "category": null,
-                                "color": null,
-                                "product_material": null,
-                                "size_type": null,
-                                "size": null,
-                                "brand": null
-                            }
-                        ]
+
                     }
                 ],
 
@@ -194,8 +144,6 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                 "cancel": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=canceled&`,
                 "failure": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=failed&`,
             },
-            "create_token": false,
-            "token": null
         }
 
         const config = {
