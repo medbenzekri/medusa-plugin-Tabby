@@ -1,6 +1,6 @@
 {
-  "name": "medusa-plugin-tabby",
-  "version": "1.1.0",
+  "name": "medusa-payment-tabby",
+  "version": "1.1.1",
   "description": "Tabby payment gateway plugin for Medusa",
   "author": "Benzekri Mohammed islam",
   "license": "MIT",
@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@medusajs/event-bus-local": "^1.9.6",
-    "@medusajs/medusa": "^1.16.0",
+    "@medusajs/medusa": "1.16.0",
     "@tanstack/react-query": "5.25.0",
     "babel-preset-medusa-package": "^1.1.13",
     "body-parser": "^1.19.0",
