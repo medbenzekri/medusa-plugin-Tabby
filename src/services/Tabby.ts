@@ -5,6 +5,9 @@ import {
     PaymentProcessorError,
     PaymentProcessorSessionResponse,
     PaymentSessionStatus,
+    ProductService,
+    CustomerService,
+    OrderService
 } from "@medusajs/medusa";
 import axios, { AxiosResponse } from "axios";
 import { humanizeAmount } from "medusa-core-utils"
@@ -12,12 +15,18 @@ import { merchant } from "../types/merchants";
 
 class MyPaymentProcessor extends AbstractPaymentProcessor {
     protected readonly cartService_: CartService;
+    protected readonly productService_: ProductService;
+    protected readonly customerService_: CustomerService;
+    protected readonly orderService_: OrderService
     merchants: merchant[];
     constructor(container, options) {
         super(container)
         // options contains plugin options
         this.merchants = options.merchants
         this.cartService_ = container.cartService;
+        this.productService_ = container.productService;
+        this.customerService_ = container.customerService;
+        this.orderService_ = container.orderService;
       }
 
 
@@ -92,6 +101,8 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
         const cart = await this.cartService_.retrieveWithTotals(
             context.resource_id
           );
+        const customer = await this.customerService_.listByEmail(cart.email, {relations:["orders"]});
+        const orders = await Promise.all(customer[0].orders.map(async (order)=>await this.orderService_.retrieveWithTotals(order.id,{relations:["shipping_address"]})))
         // const price = context.amount / 100;
         // const priceString = price.toString();
         // const formattedPrice = priceString.slice(0, 3) + "." + priceString.slice(3);
@@ -101,7 +112,7 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
         // const country = context.customer.billing_address?.country_code;
         const merchant = this.merchants.find((merchant) => merchant.currency === currency.toUpperCase()) 
                         || this.merchants.find((merchant) => merchant.type === "DEFAULT");
-        
+        const country = cart.shipping_address.country_code;
         const data = {
             "payment": {
                 "amount": humanizeAmount(context.amount, context.currency_code),
@@ -118,36 +129,58 @@ class MyPaymentProcessor extends AbstractPaymentProcessor {
                 },
                 "order": {
                     "reference_id": context.resource_id,
-                    "items": cart.items.map((item) => {
+                    "items": await Promise.all(cart.items.map(async (item) => {
+                        const { categories } = await this.productService_.retrieve(item.variant.product_id, { relations: ["categories"] });
+                        const categoryString = categories.map((category) => category.name).join(",");
                         return {
-                            title: item.title,
-                            quantity: item.quantity,
-                            unit_price: item.unit_price,
-                            category: item?.variant?.product?.categories?.map((category)=>category.name+" ") || null,
+                          title: item.title,
+                          quantity: item.quantity,
+                          unit_price: item.unit_price,
+                          category: categoryString,
                         };
-                      })
+                      }))
                 },
                 "buyer_history": {
-                    "registered_since": "2019-08-24T14:15:22Z",
-                    "loyalty_level": 0,
+                    "registered_since": customer[0].created_at || new Date().toISOString(),
+                    "loyalty_level": customer[0].orders.length || 0,
                 },
-                "order_history": [
-                    {
-                        "purchased_at": "2019-08-24T14:15:22Z",
-                        "amount": "100.00",
-                        "status": "new",
-
+                
+                "order_history": orders.length > 0 ? orders.slice(-10).map((order) => ({
+                    "purchased_at": order.created_at,
+                    "amount": humanizeAmount(order.total, order.currency_code),
+                    "status": order.status === "pending" ? "processing" : order.status === "completed" ? "complete" : order.status === "canceled" ? "canceled" : "unknown",
+                    "buyer": {
+                      "phone": `${order.shipping_address?.phone}` || null,
+                      "email": order.email,
+                      "name": `${order.shipping_address?.first_name+" "+order.shipping_address?.last_name}` || null,
+                    },
+                    "shipping_address": {
+                      "city": `${order.shipping_address?.city}` || null,
+                      "address": `${order.shipping_address?.address_1}` || null,
+                      "zip": order.shipping_address?.postal_code || null,
                     }
-                ],
-
-
+                  })) : [{
+                    "purchased_at": new Date().toISOString(),
+                    "amount": humanizeAmount(context.amount, context.currency_code),
+                    "status": "new",
+                    "buyer": {
+                      "phone": `${cart.shipping_address?.phone}` || null,
+                      "email": context.email,
+                      "name": `${cart.shipping_address?.first_name} ${cart.shipping_address?.last_name}` || null,
+                    },
+                    "shipping_address": {
+                      "city": `${cart.shipping_address?.city}` || null,
+                      "address": `${cart.shipping_address?.address_1}` || null,
+                      "zip": cart.shipping_address?.postal_code || null,
+                    }
+                  }]
             },
-            "lang": "ar",
+            "lang": context.context.lang?context.context.lang:"ar",
             "merchant_code": merchant.merchant_code,
             "merchant_urls": {
-                "success": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=approved&`,
-                "cancel": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=canceled&`,
-                "failure": `${process.env.WEB_ENDPOINT}/checkout?paymentStatus=failed&`,
+                "success": `${process.env.TABBY_WEB_ENDPOINT}/${country}/verify/checkout?paymentStatus=approved&`,
+                "cancel": `${process.env.TABBY_WEB_ENDPOINT}/${country}/verify/checkout?paymentStatus=canceled&`,
+                "failure": `${process.env.TABBY_WEB_ENDPOINT}/${country}/verify/checkout?paymentStatus=failed&`,
             },
         }
 

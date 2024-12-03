@@ -1,6 +1,6 @@
 {
   "name": "medusa-payment-tabby",
-  "version": "1.1.2",
+  "version": "1.2.7",
   "description": "Tabby payment gateway plugin for Medusa",
   "author": "Benzekri Mohammed islam",
   "license": "MIT",
